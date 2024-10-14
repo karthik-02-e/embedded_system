@@ -1,0 +1,100 @@
+#include <xc.h>
+#define _XTAL_FREQ 10000000  // Set the operating frequency to 10MHz
+
+// Configuration bits for PIC16F877A
+#pragma config FOSC = HS     // High-speed oscillator
+#pragma config WDTE = OFF    // Watchdog Timer disabled
+#pragma config PWRTE = OFF   // Power-up Timer disabled
+#pragma config BOREN = ON    // Brown-out Reset enabled
+#pragma config LVP = OFF     // Low-voltage programming disabled
+#pragma config CPD = OFF     // Data EEPROM Memory Code Protection disabled
+#pragma config WRT = OFF     // Flash Program Memory Write Protection disabled
+#pragma config CP = OFF      // Flash Program Memory Code Protection disabled
+
+// Define the LCD control pins
+#define RS RE0   // Register Select pin
+#define RW RE1   // Read/Write pin
+#define E  RE2   // Enable pin
+
+// Function Prototypes
+void Lcd_Init(void);
+void Lcd_Cmd(unsigned char cmd);
+void Lcd_Write_Char(char data);
+void Lcd_Write_String(char *str);
+void Lcd_Set_Cursor(unsigned char row, unsigned char col);
+void Lcd_Clear(void);
+
+// Function to initialize the LCD
+void Lcd_Init(void) {
+    Lcd_Cmd(0x38);  // 8-bit mode, 2 lines, 5x7 matrix
+    Lcd_Cmd(0x0C);  // Display ON, cursor OFF
+    Lcd_Cmd(0x06);  // Increment cursor
+    Lcd_Cmd(0x01);  // Clear display
+    __delay_ms(2);  // Delay for LCD to process the command
+}
+
+// Function to send a command to the LCD
+void Lcd_Cmd(unsigned char cmd) {
+    RS = 0;  // Instruction mode
+    RW = 0;  // Write to LCD
+    PORTD = cmd;  // Send command to data lines (D0-D7)
+    E = 1;  // Enable pulse
+    __delay_ms(1);
+    E = 0;
+}
+
+// Function to write a character to the LCD
+void Lcd_Write_Char(char data) {
+    RS = 1;  // Data mode
+    RW = 0;  // Write to LCD
+    PORTD = data;  // Send data to data lines (D0-D7)
+    E = 1;  // Enable pulse
+    __delay_ms(1);
+    E = 0;
+}
+
+// Function to write a string to the LCD
+void Lcd_Write_String(char *str) {
+    while (*str) {
+        Lcd_Write_Char(*str++);
+    }
+}
+
+// Function to set the cursor position on the LCD
+void Lcd_Set_Cursor(unsigned char row, unsigned char col) {
+    unsigned char temp;
+    if (row == 1) {
+        temp = 0x80 + col - 1;  // Row 1 address starts at 0x80
+    } else if (row == 2) {
+        temp = 0xC0 + col - 1;  // Row 2 address starts at 0xC0
+    }
+    Lcd_Cmd(temp);  // Set cursor to the specified position
+}
+
+// Function to clear the LCD screen
+void Lcd_Clear(void) {
+    Lcd_Cmd(0x01);  // Clear display command
+    __delay_ms(2);  // Delay for LCD to process the command
+}
+
+// Main function
+void main(void) {
+    // Set data direction
+    TRISE = 0x00;  // Set PORTE as output for control lines
+    TRISD = 0x00;  // Set PORTD as output for data lines
+    ADCON1 = 0x06; // Set PORTD and PORTE as digital I/O
+
+    // Initialize the LCD
+    Lcd_Init();
+    
+    // Display a message on the LCD
+    Lcd_Set_Cursor(1, 1);       // Set cursor to the first row, first column
+    Lcd_Write_String("HELLO");  // Write "HELLO" to the first row
+ //   Lcd_Clear();
+    Lcd_Set_Cursor(2, 1);       // Set cursor to the second row, first column
+    Lcd_Write_String("WORLD");  // Write "WORLD" to the second row
+    
+    while(1) {
+        // Infinite loop
+    }
+}
