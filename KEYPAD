@@ -1,0 +1,138 @@
+/*
+ * File:   newmain6.c
+ * Author: KARTHIK
+ * PROJECT TITLE : KEYPAD
+ * Created on October 17, 2024, 11:19 AM
+ */
+
+#pragma config FOSC = HS        
+#pragma config WDTE = OFF       
+#pragma config PWRTE = OFF      
+#pragma config BOREN = ON       
+#pragma config LVP = OFF       
+#pragma config CPD = OFF        
+#pragma config WRT = OFF        
+#pragma config CP = OFF   
+#include <xc.h>
+#define _XTAL_FREQ 10000000     
+#define R1 PORTBbits.RB4
+#define R2 PORTBbits.RB5
+#define R3 PORTBbits.RB6
+#define R4 PORTBbits.RB7
+#define C1 PORTBbits.RB0
+#define C2 PORTBbits.RB1
+#define C3 PORTBbits.RB2
+#define LED1 PORTCbits.RC0
+#define LED2 PORTCbits.RC1
+#define LED3 PORTCbits.RC2
+#define LED4 PORTCbits.RC3
+#define LED5 PORTCbits.RC4
+#define LED6 PORTCbits.RC5
+#define LED7 PORTCbits.RC6
+#define LED8 PORTCbits.RC7
+#define LED9 PORTDbits.RD0
+#define LED10 PORTDbits.RD1
+#define LED11 PORTDbits.RD2
+#define LED12 PORTDbits.RD3
+void keypad(void);
+void main(void) {
+    TRISB = 0xF0;
+    TRISC = 0x00;
+    TRISD = 0x00;
+    PORTC = 0x00;
+    PORTD = 0x00;
+    while(1)
+    {
+        keypad();
+    }
+}
+void keypad()
+{
+    C1=1;C2=0;C3=0;
+    if(R1==1)
+    {
+        LED1 = 1;
+        while(R1==1);
+        __delay_ms(100);
+        LED1 = 0;
+    }
+    if(R2==1)
+    {
+        LED4 = 1;
+        while(R2==1);
+        __delay_ms(100);
+        LED4 = 0;
+    }
+    if(R3==1)
+    {
+        LED7 = 1;
+        while(R3==1);
+        __delay_ms(100);
+        LED7 = 0;
+    }
+    if(R4==1)
+    {
+        LED10 = 1;
+        while(R4==1);
+        __delay_ms(100);
+        LED10 = 0;
+    }
+    C1=0;C2=1;C3=0;
+    if(R1==1)
+    {
+        LED2 = 1;
+        while(R1==1);
+        __delay_ms(100);
+        LED2 = 0;
+    }
+    if(R2==1)
+    {
+        LED5 = 1;
+        while(R2==1);
+        __delay_ms(100);
+        LED5 = 0;
+    }
+    if(R3==1)
+    {
+        LED8 = 1;
+        while(R3==1);
+        __delay_ms(100);
+        LED8 = 0;
+    }
+    if(R4==1)
+    {
+        LED11 = 1;
+        while(R4==1);
+        __delay_ms(100);
+        LED11 = 0;
+    }
+    C1=0;C2=0;C3=1;
+    if(R1==1)
+    {
+        LED3 = 1;
+        while(R1==1);
+        __delay_ms(100);
+        LED3 = 0;
+    }
+    if(R2==1)
+    {
+        LED6 = 1;
+        while(R2==1);
+        __delay_ms(100);
+        LED6 = 0;
+    }
+    if(R3==1)
+    {
+        LED9 = 1;
+        while(R3==1);
+        __delay_ms(100);
+        LED9 = 0;
+    }
+    if(R4==1)
+    {
+        LED12 = 1;
+        while(R4==1);
+        __delay_ms(100);
+        LED12 = 0;
+    }
+}
