@@ -1,0 +1,66 @@
+/*
+ * File:   newmain11.c
+ * Author: KARTHIK
+ * Title: UART
+ * Created on November 5, 2024, 10:44 AM
+ */
+#pragma config FOSC = HS        // Oscillator Selection bits (HS oscillator)
+#pragma config WDTE = OFF       // Watchdog Timer Enable bit (WDT disabled)
+#pragma config PWRTE = OFF      // Power-up Timer Enable bit (PWRT disabled)
+#pragma config BOREN = ON       // Brown-out Reset Enable bit (BOR enabled)
+#pragma config LVP = OFF        // Low-Voltage (Single-Supply) In-Circuit Serial Programming Enable bit (RB3 is digital I/O, HV on MCLR must be used for programming)
+#pragma config CPD = OFF        // Data EEPROM Memory Code Protection bit (Data EEPROM code protection off)
+#pragma config WRT = OFF        // Flash Program Memory Write Enable bits (Write protection off; all program memory may be written to by EECON control)
+#pragma config CP = OFF     
+#include <xc.h>
+#define _XTAL_FREQ 10000000
+#define LED PORTBbits.RB5
+volatile char rx_value;
+void __interrupt() ISR()
+{
+    if(PIR1bits.RCIF == 1)
+    {
+        rx_value = RCREG;
+        PIR1bits.RCIF = 0;
+        __delay_ms(50);       
+    }
+} 
+void main(void) {
+       
+    INTCONbits.GIE = 1;
+    INTCONbits.PEIE = 1;
+  //  PIE1bits.TXIE = 1; 
+    PIE1bits.RCIE = 1;
+    
+    TRISC = 0x80;
+    TXSTA = 0x24;
+    SPBRG = 64;
+    RCSTA = 0x90;
+    
+    TRISB = 0x00;
+    LED = 1;
+    volatile char str[10] = "START";
+    volatile int i = 0;
+    while(str[i] != '\0')
+    {
+        TXREG = str[i];
+        __delay_ms(100);
+        while(PIR1bits.TXIF == 0);
+        PIR1bits.TXIF = 0; 
+        i++;
+        __delay_ms(100);
+    } 
+         
+    while(1)
+    {
+        if(rx_value == 'y')
+        {
+            LED = 0;
+        }
+        if(rx_value == 'n')
+        {
+            LED = 1;
+        }
+       
+    }
+}
