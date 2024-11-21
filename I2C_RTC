@@ -1,0 +1,260 @@
+/*
+ * File:   newmain.c
+ * Author: Karthik
+ * project : Real Time Clock
+ * Created on November 20, 2024, 11:33 AM
+ */
+
+
+#include <xc.h>
+#pragma config FOSC = HS 
+#pragma config WDTE = OFF 
+#pragma config PWRTE = OFF 
+#pragma config BOREN = ON 
+#pragma config LVP = OFF 
+#pragma config CPD = OFF 
+#pragma config WRT = OFF 
+#pragma config CP = OFF 
+#define _XTAL_FREQ 20000000 
+#define I2C_BAUD_RATE 100000
+//******macro for LCD******
+#define rs RE0
+#define rw RE1
+#define en RE2
+//*******macro for RTC*******
+#define DS1307_addr 0xD0
+#define second 0x00
+#define minute 0x01
+#define hour 0x02
+#define day 0x03
+#define date 0x04
+#define month 0x05
+#define year 0x06
+#define control_reg 0x07
+//*******Function declaration for LCD******
+void lcd_init(void);
+void lcd_cmd(unsigned char cmd);
+void lcd_clear();
+void lcd_char(char data);
+void lcd_str(const unsigned char *p,unsigned char length);
+//*******Function declaration for I2C *******
+void I2C_init(void);
+void I2C_start(void);
+void I2C_RepeatedStart(void);
+void I2C_Stop(void) ;
+void I2C_Write(unsigned char);
+unsigned char I2C_Read(void);
+void I2C_Acknowledge(unsigned char ack_type) ;
+//*******Function declaration for decimal to BCD and BCD to ASCII*******
+char DtoB(unsigned char value);
+void BcdtoASCII(unsigned char value);
+//*******Function declaration for RTC*******
+void DS1307_write(char sec, char min, char hr, char _day, char _date, char _month, char _year);
+void DS1307_read(char slave_address, char registe_address);
+//*******variable declaration for RTC*******
+unsigned char __sec, __min, __hr, __day,__date, __month, __yr, __con ;
+void main(void) 
+{
+    TRISE = 0X00;//register select , enable
+    TRISD = 0X00;//lcd data and command sending ports
+    PORTD = 0X00;
+    ADCON1 = 0X07;//port E as digital pins
+    TRISC = 0XFF;//for I2C
+    I2C_init();
+    lcd_init();
+    lcd_cmd(0X80);
+    lcd_str("CLOCK",5);
+    lcd_cmd(0XC0);
+    lcd_str("DATE",4);
+    DS1307_write(3,2,1,1,5,4,20);
+    __delay_ms(300);
+    while(1)
+    {
+        __delay_ms(20);
+        DS1307_read(DS1307_addr, 0);
+    }
+}
+//*******I2C Initialize*******
+void I2C_init()
+{
+    SSPCON = 0x28;   // Enable I2C in master mode (SSPCON1<4:3> = 10)
+    SSPCON2 = 0x00;   // Clear SSPCON2 register
+    SSPADD = (_XTAL_FREQ / (4 * I2C_BAUD_RATE)) - 1;  // Set baud rate for 100 kHz
+}
+//******I2C Start*******
+void I2C_start()
+{
+    SSPCON2bits.SEN = 1;         // Initiate Start condition
+    while(SSPCON2bits.SEN);      // Wait for Start condition to complete
+    PIR1bits.SSPIF = 0;   // Clear SSP interrupt flag after start condition
+}
+//*******I2C Repeated start*******
+void I2C_RepeatedStart()
+{
+    SSPCON2bits.RSEN = 1;        // Initiate Repeated Start condition
+    while(SSPCON2bits.RSEN);     // Wait for Repeated Start to complete
+    PIR1bits.SSPIF = 0;          // Clear SSP interrupt flag after repeated start
+}
+//*******I2C STOP*******
+void I2C_Stop() 
+{    
+    SSPCON2bits.PEN = 1;         // Initiate Stop condition
+    while(SSPCON2bits.PEN);      // Wait for Stop condition to complete
+    PIR1bits.SSPIF = 0;          // Clear SSP interrupt flag after stop condition
+}
+//*******I2C Write******
+void I2C_Write(unsigned char data)
+{
+    SSPBUF = data;               // Load the data to SSPBUF register (start transmission)
+    while(SSPSTATbits.BF);       // Wait until the Buffer Full (BF) flag is cleared
+    while(SSPCON2bits.ACKSTAT);  // Wait for acknowledgment from slave (ACKSTAT = 0 if ACK received)
+    PIR1bits.SSPIF = 0;          // Clear SSP interrupt flag after transmission
+    __delay_ms(2);
+}
+//*******I2C Read*******
+unsigned char I2C_Read( )
+{
+    SSPCON2bits.RCEN = 1;        // Enable receive mode (start reception)
+    while(!SSPSTATbits.BF);      // Wait until Buffer Full flag is set (data received)
+    PIR1bits.SSPIF = 0;          // Clear SSP interrupt flag after reception
+    __delay_ms(2);
+    return SSPBUF;               // Read and return the received data
+}
+//*******I2C Acknowledge*******
+void I2C_Acknowledge(unsigned char ack_type) 
+{    
+    SSPCON2bits.ACKDT = ack_type; // 0: Acknowledge, 1: Not Acknowledge
+    SSPCON2bits.ACKEN = 1;        // Send the ACK/NACK
+    while(SSPCON2bits.ACKEN);     // Wait for the ACK sequence to complete
+    PIR1bits.SSPIF = 0;           // Clear SSP interrupt flag after acknowledge  
+} 
+//*******Decimal to BCD*******
+char DtoB(unsigned char value)
+{
+    unsigned char msb,lsb,hex;
+    msb = value / 10;
+    lsb = value % 10;
+    hex = ((msb << 4) + lsb);
+    return hex;
+}
+//*******BCD to Decimal*******
+void BcdtoASCII(unsigned char value)
+{
+    unsigned char bcd;
+    bcd = value;
+    bcd = bcd & 0xF0;
+    bcd = bcd >> 4;
+    bcd = bcd + 48;
+    lcd_char(bcd);
+    bcd = value;
+    bcd = bcd & 0x0F;
+    bcd = bcd + 48;
+    lcd_char(bcd);
+}
+//*******DS1307_write function*******
+void DS1307_write(char sec, char min, char hr, char _day, char _date, char _month, char _year)
+{
+    I2C_start();
+    I2C_Write(DS1307_addr);
+    I2C_Write(second);
+    sec = DtoB(sec);
+    I2C_Write(sec);
+    min = DtoB(min);
+    I2C_Write(min);
+    hr = DtoB(hr);
+    I2C_Write(hr);
+    _day = DtoB(_day);
+    I2C_Write(_day);
+    _date = DtoB(_date);
+    I2C_Write(_date);
+    _month = DtoB(_month);
+    I2C_Write(_month);
+    _year = DtoB(_year);
+    I2C_Write(_year);
+    I2C_Write(0x00);
+    I2C_Stop();
+}
+//*******DS1307_Read function*******
+void DS1307_read(char slave_address, char registe_address)
+{
+    I2C_start();
+    I2C_Write(slave_address);
+    I2C_Write(registe_address);
+    I2C_RepeatedStart();
+    I2C_Write(slave_address + 1); //unsigned char __sec, __min, __hr, __day, __month, __yr, __con ;
+    __sec = I2C_Read( );
+    I2C_Acknowledge(0);
+    __min = I2C_Read( );
+    I2C_Acknowledge(0);
+    __hr = I2C_Read( );
+    I2C_Acknowledge(0);
+    __day = I2C_Read( );
+    I2C_Acknowledge(0);
+    __date = I2C_Read( );
+    I2C_Acknowledge(0);
+    __month = I2C_Read( );
+    I2C_Acknowledge(0);
+    __yr = I2C_Read( );
+    I2C_Acknowledge(0);
+    __con = I2C_Read( );
+    I2C_Acknowledge(0);
+    I2C_Stop();
+    
+    lcd_cmd(0x88);
+    BcdtoASCII(__hr);
+    lcd_char(':');
+    BcdtoASCII(__min);
+    lcd_char(':');
+    BcdtoASCII(__sec);
+    
+    lcd_cmd(0xC7);
+    BcdtoASCII(__date);
+    lcd_char('/');
+    BcdtoASCII(__month);
+    lcd_char('/');
+    BcdtoASCII(__yr);
+}
+//*******LCD Initialization*******
+void lcd_init()
+{
+    lcd_cmd(0x38);  // Set LCD to 8-bit mode, 2 lines, 5x7 matrix
+    lcd_cmd(0x0C);  // Display ON, Cursor OFF
+    lcd_cmd(0x06);  // Auto Increment cursor
+    lcd_cmd(0x01);  // Clear display
+    __delay_ms(2);
+}
+//******LCD Command******
+void lcd_cmd(unsigned char cmd)
+{
+    PORTD = cmd;
+    rs = 0;
+    rw = 0;
+    en = 1;
+    __delay_ms(10);
+    en = 0;
+}
+//******LCD Clear******
+void lcd_clear()
+{
+    lcd_cmd(0x01);
+    __delay_ms(1);
+}
+//******LCD data******
+void lcd_char(char data)
+{
+    PORTD = data;
+    rs = 1;
+    rw = 0;
+    en = 1;
+    __delay_ms(10);
+    en = 0;
+}
+//*******LCD String******
+void lcd_str(const unsigned char *p, unsigned char length)
+{
+    unsigned char i ;
+    for(i=0;i<length;i++)
+    {
+        lcd_char(p[i]);
+    }
+}
