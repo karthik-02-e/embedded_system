@@ -1,0 +1,183 @@
+/*
+ * File:   newmain.c
+ * Author: Karthik
+ * project title
+ * Created on November 28, 2024, 4:09 PM
+ */
+
+
+#include <xc.h>
+#pragma config FOSC = HS 
+#pragma config WDTE = OFF 
+#pragma config PWRTE = OFF 
+#pragma config BOREN = ON 
+#pragma config LVP = OFF 
+#pragma config CPD = OFF 
+#pragma config WRT = OFF 
+#pragma config CP = OFF 
+#define _XTAL_FREQ 10000000 
+//#define LED PORTBbits.RB5
+//******macro for LCD******
+#define rs RE0
+#define rw RE1
+#define en RE2
+//*******Function declaration finding number of digits******
+int no_of_digit(int num);
+//*******Function declaration for LCD******
+void lcd_init(void);
+void lcd_cmd(unsigned char cmd);
+void lcd_char(char data);
+void lcd_str(const unsigned char *p,unsigned char length);
+//*******Function declaration for timer initialization******
+void timer1_init(void);
+void dispay_rpm(unsigned int rpm);
+unsigned int time_count,tot_rpm;
+unsigned char flag;
+int total_digit;//variable to store total number of digits
+//*******globel variable declaration*******
+unsigned int count; //for count speed sensor detection
+void __interrupt() ISR()
+{
+    if(INTCONbits.INTF == 1)
+    {
+        count++;
+        T1CONbits.TMR1ON = 1;//making timer ON when first interrupt occurence
+        INTCONbits.INTF = 0;
+    }
+    if(PIR1bits.TMR1IF == 1)
+    {
+        time_count++;
+        if(time_count == 2307)
+        {
+            T1CONbits.TMR1ON = 0;
+            tot_rpm = count;flag = 1;
+        }
+        TMR1L = 0x00;
+        TMR1H = 0x00;
+        PIR1bits.TMR1IF = 0;
+    }
+} 
+void main(void) {
+    TRISE = 0X00;//register select , enable
+    TRISD = 0X00;//lcd data and command sending ports
+    PORTD = 0X00;
+    ADCON1 = 0X07;//port E as digital pins
+  //  TRISBbits.TRISB5 = 0; //making RB5 as output
+    TRISBbits.TRISB0 = 1; //making RB0 as input : going to use as external interrupt
+    INTCONbits.GIE = 1; //Enables all unmasked interrupts
+    INTCONbits.PEIE = 1; //Enables all unmasked peripheral interrupts
+    INTCONbits.INTE = 1; //Enables the RB0/INT external interrupt
+    OPTION_REGbits.INTEDG = 1; // for interrupt to occur on rising edge
+ //   LED = 1; //initially RB5 pin is at high
+    
+    timer1_init();
+    lcd_init();
+    lcd_cmd(0x80);
+    lcd_str("RPM : ",6);
+    while(1)
+    {
+        if(flag == 1)
+        {
+            dispay_rpm(tot_rpm);
+        }
+        
+    }
+}
+//*******LCD Initialization*******
+void lcd_init()
+{
+    lcd_cmd(0x38);  // Set LCD to 8-bit mode, 2 lines, 5x7 matrix
+    lcd_cmd(0x80); // cursor in the first row
+    lcd_cmd(0x0E);  // Display ON, Cursor Blinking
+    __delay_ms(10); //small delay for viewing cursor
+    lcd_cmd(0x0C);  // Display ON, Cursor OFF
+  //  lcd_cmd(0x06);  // Auto Increment cursor
+    lcd_cmd(0x01);  // Clear display
+    __delay_ms(2);
+}
+//******LCD Command******
+void lcd_cmd(unsigned char cmd)
+{
+    PORTD = cmd;
+    rs = 0; //selecting command register
+    rw = 0;
+    en = 1;
+    __delay_ms(5);
+    en = 0;
+}
+//******LCD data******
+void lcd_char(char data)
+{
+    PORTD = data;
+    rs = 1;  //selecting data register
+    rw = 0;
+    en = 1;
+    __delay_ms(5);
+    en = 0;
+}
+//*******LCD String******
+void lcd_str(const unsigned char *p, unsigned char length)
+{
+    unsigned char i ;
+    for(i=0;i<length;i++)
+    {
+        lcd_char(p[i]);
+    }
+}
+//*******Function to find No Of Digits*******
+int no_of_digit(int num)
+{
+    int T_digit = 0;
+    while(num != 0)
+    {
+        T_digit++;
+        num = num/10;
+    }
+    return T_digit;
+}
+//*******function definition for time1-initialization*******
+void timer1_init(void)
+{
+    T1CON = 0x00;//prescale vaue as 1, 
+    PIE1bits.TMR1IE = 1; //timer1 interrupt enable
+    TMR1L = 0x00;
+    TMR1H = 0x00;
+}
+void dispay_rpm(unsigned int rpm)
+{
+    int total_digit;
+    total_digit = no_of_digit(rpm);
+    if(total_digit == 1)
+    {
+        lcd_cmd(0x88);
+        lcd_char(rpm + 48);
+    }
+    if(total_digit == 2)
+    {
+        lcd_cmd(0x88);
+        lcd_char((rpm/10) + 48);//for printing first digit
+        lcd_cmd(0x89);
+        lcd_char((rpm%10) + 48);//for printing last digit
+    }
+    if(total_digit == 3)
+    {
+        lcd_cmd(0x88);
+        lcd_char((rpm/100) + 48);//for first digit
+        lcd_cmd(0x89);
+        lcd_char(((rpm/ 10) %10) + 48);//for printing second digit
+        lcd_cmd(0x8A);
+        lcd_char((rpm % 10) + 48);//for three digit number
+    }
+    if(total_digit == 4 )
+    {            
+        lcd_cmd(0x88);
+        lcd_char((rpm / 1000) + 48);//for printing first digit
+        lcd_cmd(0x89);
+        lcd_char(((rpm/100)%10) + 48);//for printing second digit
+        lcd_cmd(0x8A);
+        lcd_char(((rpm/10)%10) + 48);//for printing third digit
+        lcd_cmd(0x8B);
+        lcd_char((rpm%10) + 48);//for printing fourth digit
+    }
+        
+}
