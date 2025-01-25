@@ -1,0 +1,92 @@
+GCC commands
+commands                                   Description
+gcc filename.c                             Compiles filename.c and creates an executable file named a.out
+gcc -o output filename.c	                 Compiles filename.c and creates an executable file named output.
+gcc -c filename.c	                         Compiles filename.c into an object file (filename.o) without linking.
+gcc -Wall filename.c	                     Enables all warning messages during compilation.
+gcc -g filename.c	                         Compiles with debug information included (required for debugging with GDB).
+gcc -O	                                   Optimizes the code (basic optimization).
+gcc -O1, -O2, -O3	                         Compiles with increasing levels of optimization (higher numbers = more aggressive optimization).
+gcc -std=c99 filename.c	                   Compiles with the C99 standard.
+gcc -ansi filename.c	                     Enforces strict ANSI C compliance.
+gcc -E filename.c	                         Runs only the preprocessor and outputs preprocessed code.
+gcc -S filename.c	                         Generates assembly code (.s file) from the source code.
+gcc -L/path/to/libs	                       Adds a directory to the library search path during linking.
+gcc -l<libname>	                           Links the program to a library named lib<libname>.so or lib<libname>.a.
+gcc -I/path/to/include	                   Specifies an additional directory to search for header files.
+gcc -pthread filename.c	                   Compiles and links a program with the pthread (POSIX thread) library.
+gcc -shared -fPIC filename.c	             Compiles and creates a shared library.
+gcc -D<macro>	                             Defines a macro during compilation (e.g., gcc -DDEBUG filename.c).
+gcc -Werror	                               Treats all warnings as errors, stopping compilation if any warning occurs.
+gcc -v	                                   Displays verbose output of the compilation process.
+gcc --version	                             Displays the GCC version installed.
+
+gcc -save-temps -o program program.c       Saves intermediate files for all compilation stages in the same directory as the source file.
+
+GDB Commands
+Starting and Exiting GDB
+commands                       Description
+gdb	                           Starts GDB.
+gdb ./program	                 Starts GDB and loads the specified program.
+gdb -q ./program	             Starts GDB in quiet mode (without the introductory message).
+quit or q	                     Exits GDB.
+
+Loading Files and Running Programs
+commands                       Description
+file ./program	               Loads an executable file into GDB.
+run	                           Runs the program from the beginning.
+run [args]	                   Runs the program with command-line arguments (e.g., run arg1 arg2).
+start	                         Starts the program and pauses at the beginning of the main function.
+set args	                     Sets command-line arguments for the program.
+
+Breakpoints and Watchpoints
+commands                       Description
+break [location]	             Sets a breakpoint at a specific location (e.g., break main, break filename.c:line_number).
+tbreak [location]	             Sets a temporary breakpoint (removes itself after being hit once).
+info breakpoints	             Displays all breakpoints and their details.
+delete [num]	                 Deletes a specific breakpoint (use delete to remove all breakpoints).
+watch [variable]	             Sets a watchpoint to stop execution when the value of a variable changes.
+rwatch [variable]	             Stops execution when the variable is read.
+awatch [variable]	             Stops execution when the variable is read or written.
+
+Controlling Program Execution
+commands                       Description
+continue or c	                 Resumes execution until the next breakpoint or program end.
+step or s	                     Steps into the next line of code, including function calls.
+next or n	                     Steps over the next line of code, skipping over function calls.
+finish	                       Continues execution until the current function returns.
+until [location]	             Runs the program until a specific location is reached.
+return	                       Forces the current function to return immediately.
+kill	                         Stops the program and terminates the debugging session.
+
+Inspecting Program State
+commands                       Description
+print [expression]	           Prints the value of an expression (e.g., print x, print 5+3).
+ptype [variable]	             Displays the data type of a variable.
+display [expression]	         Automatically prints the value of an expression after every step.
+info locals	                   Lists all local variables in the current function and their values.
+info registers	               Displays the values of CPU registers.
+info stack	                   Shows the current call stack.
+backtrace or bt	               Displays the call stack (useful for identifying where a crash occurred).
+frame [num]	                   Switches to a specific stack frame.
+list	                         Displays source code near the current execution point.
+list [location]	               Displays source code around a specified location (e.g., list main).
+
+Memory and Variables
+commands                       Description
+x [address]	                   Examines memory at a given address (e.g., x/4xw 0x600ff0).
+set [variable] = value	       Changes the value of a variable during runtime.
+info variables	               Displays all global and static variables.
+
+Advanced Debugging
+commands                       Description
+set follow-fork-mode	         Sets how GDB handles forked processes (e.g., child, parent).
+attach [pid]	                 Attaches GDB to a running process using its PID.
+detach	                       Detaches GDB from the current process.
+info sharedlibrary	           Displays shared libraries loaded by the program.
+
+Miscellaneous
+commands                       Description
+help	                         Lists all GDB commands or provides help on a specific command.
+show [option]	                 Displays the current value of a GDB setting (e.g., show args).
+set pagination off	           Disables pagination of output in GDB.
